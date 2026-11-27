@@ -18,7 +18,8 @@ record StoredBookRecord(
         boolean hasCover,
         String coverMimeType,
         Map<String, String> extraMetadata,
-        Instant importedAt
+        Instant importedAt,
+        boolean searchIndexed
 ) {
     StoredBookRecord {
         extraMetadata = extraMetadata == null ? Map.of() : Map.copyOf(extraMetadata);

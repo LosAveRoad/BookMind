@@ -1,6 +1,7 @@
 package io.bookmind.server.library;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.bookmind.rag.RagService;
 import io.bookmind.rag.RagStreamListener;
@@ -83,6 +84,16 @@ class LibraryServiceTest {
                     .extracting(BookSummary::title, BookSummary::author)
                     .containsExactly("微服务指南", "张三");
             assertThat(restarted.getStatus().failures()).hasSize(2);
+
+            // Catalogs written by the old bootstrap service have chapters but no Lucene entries.
+            Path catalog = dataDir.resolve("library-index.json");
+            ObjectMapper mapper = createMapper();
+            var legacy = mapper.readTree(catalog.toFile());
+            ((ObjectNode) legacy.required("books").required(0)).remove("searchIndexed");
+            mapper.writeValue(catalog.toFile(), legacy);
+            restarted.initialize();
+            assertThat(rag.indexedBookIds).hasSize(2);
+            assertThat(restarted.scanLibrary().indexedCount()).isZero();
         }
     }
 

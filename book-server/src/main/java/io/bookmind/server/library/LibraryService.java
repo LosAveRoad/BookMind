@@ -104,6 +104,7 @@ public class LibraryService {
                     String sha256 = sha256File(file);
                     StoredBookRecord existing = booksById.get(bookId);
                     boolean unchanged = existing != null
+                            && existing.searchIndexed()
                             && sha256.equals(existing.sha256())
                             && storage.hasChapters(bookId)
                             && pluginManager.findActivePluginFor(file).isPresent();
@@ -114,7 +115,6 @@ public class LibraryService {
                     ParsedBook parsed = pluginManager.parse(file);
                     StoredBookRecord updated = storeParsedBook(bookId, relativePath, sha256, parsed, now);
                     booksById.put(bookId, updated);
-                    ragService.indexBook(bookId, parsed);
                     indexedCount++;
                 } catch (PluginException ex) {
                     failures.add(new ScanFailure(relativePath, ex.errorCode().name(), ex.getMessage()));
@@ -176,7 +176,6 @@ public class LibraryService {
             lastFailures = lastFailures.stream()
                     .filter(f -> !f.file().equals(relativePath))
                     .toList();
-            ragService.indexBook(bookId, parsed);
             persistSnapshot();
             return record.toDetail();
         } catch (IOException ex) {
@@ -266,6 +265,7 @@ public class LibraryService {
         storage.saveCover(bookId, parsed.cover());
         boolean hasCover = parsed.cover().isPresent();
         String coverMime = parsed.cover().map(BookCover::mimeType).orElse("");
+        ragService.indexBook(bookId, parsed);
         return new StoredBookRecord(
                 bookId,
                 relativePath,
@@ -278,7 +278,8 @@ public class LibraryService {
                 hasCover,
                 coverMime,
                 parsed.extraMetadata(),
-                importedAt
+                importedAt,
+                true
         );
     }
 
