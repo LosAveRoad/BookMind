@@ -84,6 +84,14 @@ mvn -B verify
 
 ### 本地运行服务（在仓库根目录执行）
 
+**使用发行包**：从成功的 GitHub Actions 构建下载 `bookmind-release` 制品，解开制品后，
+将其中的 `BookMind.zip` 完整解压到可写目录。安装 Java 21 后，Windows 双击
+`BookMind/bookmind.bat`，Linux 或 macOS 在解压目录运行 `sh BookMind/bin/bookmind.sh`。
+看到服务启动成功后，打开 `http://localhost:8080`。发行包自带 TXT、PDF 样书和 PDF 插件。
+使用同目录下的 `RELEASE.md` 核对 ZIP 的 SHA-256 和对应提交。
+
+**从源码启动**：
+
 ```bash
 # 可选：按需设置 OpenAI 兼容伴读接口环境变量（绝不要把真实 Key 提交进 Git，参考 .env.example）
 export BOOKMIND_LLM_BASE_URL="https://api.openai.com/v1"

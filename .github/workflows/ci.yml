@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
 
 jobs:
   frontend:
@@ -22,10 +23,10 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run frontend unit tests (Vitest)
         run: npm test
@@ -65,3 +66,39 @@ jobs:
 
       - name: Verify independent PDF plugin build command (without building book-server/book-rag)
         run: mvn -B -pl book-plugin-pdf -am package
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Package standalone release and record SHA-256
+        run: python .github/release/package.py ../release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bookmind-release
+          path: ../release/
+          if-no-files-found: error
+
+  release-smoke:
+    name: Start extracted ZIP on ${{ matrix.os }}
+    needs: backend
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: bookmind-release
+          path: release
+      - name: Verify checksum and launch from a fresh extraction
+        run: python .github/release/smoke.py release/BookMind.zip
